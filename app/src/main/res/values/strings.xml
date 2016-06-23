@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">VideoCodec</string>
+    <string name="input_surface_for_h264_encoder">Input Surface for H264 Encoder</string>
+    <string name="output_surface_for_h264_decoder">Output Surface for H264 Decoder</string>
+</resources>
