@@ -84,9 +84,13 @@ public class Sender {
             if ((info.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) == MediaCodec.BUFFER_FLAG_END_OF_STREAM) {
                 flag = VideoPacket.Flag.END;
             } else if ((info.flags & MediaCodec.BUFFER_FLAG_KEY_FRAME) == MediaCodec.BUFFER_FLAG_KEY_FRAME) {
+                flag = VideoPacket.Flag.KEY_FRAME;
+            } else if (info.flags == 0) {
                 flag = VideoPacket.Flag.FRAME;
             }
 
+            // TODO: need store latest pps and sps params
+            // TODO: need send config frame each time before KEY-FRAME
             send(VideoPacket.toArray(type, flag, info.presentationTimeUs, mBuffer));
         }
     }

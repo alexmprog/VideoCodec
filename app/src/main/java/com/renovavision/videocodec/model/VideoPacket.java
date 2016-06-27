@@ -6,11 +6,11 @@ package com.renovavision.videocodec.model;
 
 public class VideoPacket extends MediaPacket {
 
-    public static final byte[] PACKET_HEADER = new byte[]{0, 0, 0, 0, 1};
+    public static final byte[] PACKET_HEADER = new byte[]{0, 0, 0, 0, 0, 1};
 
     public enum Flag {
 
-        CONFIG((byte) 2), FRAME((byte) 1), END((byte) 4);
+        FRAME((byte) 0), KEY_FRAME((byte) 1), CONFIG((byte) 2), END((byte) 4);
 
         private byte type;
 
@@ -86,6 +86,6 @@ public class VideoPacket extends MediaPacket {
     }
 
     public static boolean isVideoPacket(byte[] values) {
-        return values[0] == Type.VIDEO.getType();
+        return values[6] == Type.VIDEO.getType();
     }
 }
