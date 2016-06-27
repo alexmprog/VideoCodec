@@ -11,9 +11,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/**
- * Created by Alexandr Golovach on 12.05.16.
- */
 public class VideoDecoder {
 
     private Worker mWorker;
@@ -24,9 +21,9 @@ public class VideoDecoder {
         }
     }
 
-    public void configure(Surface surface, int width, int height, byte[] csd0, int offset, int size) {
+    public void configure(Surface surface, int width, int height, ByteBuffer csd0, ByteBuffer csd1) {
         if (mWorker != null) {
-            mWorker.configure(surface, width, height, ByteBuffer.wrap(csd0, offset, size));
+            mWorker.configure(surface, width, height, csd0, csd1);
         }
     }
 
@@ -60,14 +57,14 @@ public class VideoDecoder {
             mIsRunning.set(isRunning);
         }
 
-        private void configure(Surface surface, int width, int height, ByteBuffer csd0) {
+        private void configure(Surface surface, int width, int height, ByteBuffer csd0, ByteBuffer csd1) {
             if (mIsConfigured.get()) {
                 throw new IllegalStateException("Decoder is already configured");
             }
             MediaFormat format = MediaFormat.createVideoFormat(VideoCodecConstants.VIDEO_CODEC, width, height);
-            // little tricky here, csd-0 is required in order to configure the codec properly
-            // it is basically the first sample from encoder with flag: BUFFER_FLAG_CODEC_CONFIG
+
             format.setByteBuffer("csd-0", csd0);
+            format.setByteBuffer("csd-1", csd1);
             try {
                 mCodec = MediaCodec.createDecoderByType(VideoCodecConstants.VIDEO_CODEC);
             } catch (IOException e) {

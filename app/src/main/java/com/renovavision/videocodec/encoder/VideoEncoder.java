@@ -279,6 +279,11 @@ public class VideoEncoder {
             mIsRunning.set(running);
         }
 
+        @NonNull
+        public AtomicBoolean isRunning() {
+            return mIsRunning;
+        }
+
         @Override
         public void run() {
             // prepare video codec
@@ -377,6 +382,10 @@ public class VideoEncoder {
             mCodec.stop();
             mCodec.release();
             mSurface.release();
+        }
+
+        private MediaFormat getOutputFormat() {
+            return mCodec.getOutputFormat();
         }
 
         private void prepare() {
