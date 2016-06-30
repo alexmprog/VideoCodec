@@ -1,22 +1,28 @@
 package com.renovavision.videocodec.sender;
 
 import android.media.MediaCodec;
+import android.support.annotation.NonNull;
+import android.util.Log;
 
 import com.renovavision.videocodec.encoder.VideoEncoder;
 import com.renovavision.videocodec.model.MediaPacket;
 import com.renovavision.videocodec.model.VideoPacket;
 import com.renovavision.videocodec.surface.SurfaceView;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.SocketException;
+import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Sender {
+
+    private static final String TAG = Sender.class.getSimpleName();
 
     private Worker mWorker;
     private InetAddress address;
@@ -25,7 +31,7 @@ public class Sender {
     private VideoEncoder videoEncoder;
 
     public Sender(String host, int port, SurfaceView surfaceView, int width, int height) {
-        this.videoEncoder = new UDPEncoder(surfaceView, width, height);
+        this.videoEncoder = new Encoder(surfaceView, width, height);
         this.port = port;
         try {
             this.address = InetAddress.getByName(host);
@@ -53,17 +59,17 @@ public class Sender {
         videoEncoder.stop();
     }
 
-    protected void send(byte[] data) {
+    protected void send(VideoPacket videoPacket) {
         if (mWorker != null) {
-            mWorker.send(address, port, data);
+            mWorker.send(videoPacket);
         }
     }
 
-    class UDPEncoder extends VideoEncoder {
+    class Encoder extends VideoEncoder {
 
         byte[] mBuffer = new byte[0];
 
-        public UDPEncoder(SurfaceView surfaceView, int width, int height) {
+        public Encoder(SurfaceView surfaceView, int width, int height) {
             super(surfaceView, width, height);
         }
 
@@ -91,7 +97,7 @@ public class Sender {
 
             // TODO: need store latest pps and sps params
             // TODO: need send config frame each time before KEY-FRAME
-            send(VideoPacket.toArray(type, flag, info.presentationTimeUs, mBuffer));
+            send(new VideoPacket(type, flag, info.presentationTimeUs, mBuffer));
         }
     }
 
@@ -99,11 +105,10 @@ public class Sender {
 
         private AtomicBoolean mIsRunning = new AtomicBoolean(false);
 
-        private DatagramSocket datagramSocket;
-
         Worker() {
-
         }
+
+        private BlockingQueue<VideoPacket> packetsQueue = new ArrayBlockingQueue<>(2000);
 
         private void setRunning(boolean isRunning) {
             mIsRunning.set(isRunning);
@@ -111,28 +116,67 @@ public class Sender {
 
         @Override
         public void run() {
-            try {
-                datagramSocket = new DatagramSocket();
-                while (mIsRunning.get()) {
-                    // sender thread - should only send packet using udp connection
-                }
-                datagramSocket.disconnect();
-                datagramSocket.close();
-            } catch (SocketException e) {
-                mIsRunning.set(false);
-                e.printStackTrace();
-            }
+            Socket socket = null;
+            DataOutputStream dataOutputStream = null;
+            DataInputStream dataInputStream = null;
 
+            try {
+                socket = new Socket(address, port);
+                dataOutputStream = new DataOutputStream(
+                        socket.getOutputStream());
+                dataInputStream = new DataInputStream(socket.getInputStream());
+
+                while (mIsRunning.get()) {
+                    if (dataInputStream.available() > 0) {
+                        // can do some work here
+                    }
+
+                    while (!packetsQueue.isEmpty()) {
+                        try {
+                            VideoPacket videoPacket = packetsQueue.take();
+                            dataOutputStream.write(videoPacket.toByteArray());
+                            dataOutputStream.flush();
+                        } catch (InterruptedException e) {
+                            Log.e(TAG, e.getMessage());
+                        }
+                    }
+                }
+
+            } catch (IOException e) {
+                Log.e(TAG, e.getMessage());
+            } finally {
+                if (socket != null) {
+                    try {
+                        socket.close();
+                    } catch (IOException e) {
+                        Log.e(TAG, e.getMessage());
+                    }
+                }
+
+                if (dataOutputStream != null) {
+                    try {
+                        dataOutputStream.close();
+                    } catch (IOException e) {
+                        Log.e(TAG, e.getMessage());
+                    }
+                }
+
+                if (dataInputStream != null) {
+                    try {
+                        dataInputStream.close();
+                    } catch (IOException e) {
+                        Log.e(TAG, e.getMessage());
+                    }
+                }
+
+            }
         }
 
-        public synchronized void send(InetAddress address, int port, byte[] data) {
-            if (datagramSocket != null) {
-                DatagramPacket packet = new DatagramPacket(data, data.length, address, port);
-                try {
-                    datagramSocket.send(packet);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+        public synchronized void send(@NonNull VideoPacket videoPacket) {
+            try {
+                packetsQueue.put(videoPacket);
+            } catch (InterruptedException e) {
+                Log.e(TAG, e.getMessage());
             }
         }
     }

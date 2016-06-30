@@ -59,7 +59,9 @@ public class VideoDecoder {
 
         private void configure(Surface surface, int width, int height, ByteBuffer csd0, ByteBuffer csd1) {
             if (mIsConfigured.get()) {
-                throw new IllegalStateException("Decoder is already configured");
+                // try change pps and sps format
+                //mCodec.ge
+                return;
             }
             MediaFormat format = MediaFormat.createVideoFormat(VideoCodecConstants.VIDEO_CODEC, width, height);
 

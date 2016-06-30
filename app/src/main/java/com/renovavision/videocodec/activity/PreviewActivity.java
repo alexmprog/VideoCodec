@@ -47,8 +47,6 @@ public class PreviewActivity extends AppCompatActivity {
                 }
             }
         });
-
-        mPlayer = new Player(5006, mDecoderSurfaceView, 640, 480);
     }
 
     /**
@@ -81,13 +79,16 @@ public class PreviewActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        mPlayer.stop();
+        if (mPlayer != null) {
+            mPlayer.stop();
+        }
     }
 
     private SurfaceHolder.Callback mEncoderCallback = new SurfaceHolder.Callback() {
         @Override
         public void surfaceCreated(SurfaceHolder surfaceHolder) {
             // surface is fully initialized on the activity
+            mPlayer = new Player(5006, surfaceHolder.getSurface(), 640, 480);
             isSurfaceCreated.set(true);
         }
 

@@ -9,6 +9,7 @@ import android.view.SurfaceHolder;
 
 import com.renovavision.videocodec.decoder.VideoDecoder;
 import com.renovavision.videocodec.encoder.VideoEncoder;
+import com.renovavision.videocodec.model.VideoPacket;
 import com.renovavision.videocodec.surface.SurfaceView;
 
 import java.nio.ByteBuffer;
@@ -107,68 +108,12 @@ public class MainActivity extends AppCompatActivity {
                 // this is the first and only config sample, which contains information about codec
                 // like H.264, that let's configure the decoder
 
-                byte[] sps = null, pps = null;
-//                int p = 4, q = 4;
-//                int len = info.size;
-//                if (len < 128) {
-//                    if (len > 0 && mBuffer[0] == 0 && mBuffer[1] == 0 && mBuffer[2] == 0 && mBuffer[3] == 1) {
-//                        // Parses the SPS and PPS, they could be in two different packets and in a different order
-//                        //depending on the phone so we don't make any assumption about that
-//                        while (p < len) {
-//                            while (!(mBuffer[p + 0] == 0 && mBuffer[p + 1] == 0 && mBuffer[p + 2] == 0 && mBuffer[p + 3] == 1) && p + 3 < len)
-//                                p++;
-//                            if (p + 3 >= len) p = len;
-//                            if ((mBuffer[q] & 0x1F) == 7) {
-//                                mSPS = new byte[p - q];
-//                                System.arraycopy(mBuffer, q, mSPS, 0, p - q);
-//                            } else {
-//                                mPPS = new byte[p - q];
-//                                System.arraycopy(mBuffer, q, mPPS, 0, p - q);
-//                            }
-//                            p += 4;
-//                            q = p;
-//                        }
-//                    }
-//                }
-
-                // The PPS and PPS shoud be there
-//                MediaFormat format = mEncoder.;
-//                ByteBuffer spsb = format.getByteBuffer("csd-0");
-//                ByteBuffer ppsb = format.getByteBuffer("csd-1");
-//                mSPS = new byte[spsb.capacity() - 4];
-//                spsb.position(4);
-//                spsb.get(mSPS, 0, mSPS.length);
-//                mPPS = new byte[ppsb.capacity() - 4];
-//                ppsb.position(4);
-//                ppsb.get(mPPS, 0, mPPS.length);
-
-                ByteBuffer spsPpsBuffer = ByteBuffer.wrap(mBuffer);
-                if (spsPpsBuffer.getInt() == 0x00000001) {
-                    System.out.println("parsing sps/pps");
-                } else {
-                    System.out.println("something is amiss?");
-                }
-                int ppsIndex = 0;
-                while (!(spsPpsBuffer.get() == 0x00 && spsPpsBuffer.get() == 0x00 && spsPpsBuffer.get() == 0x00 && spsPpsBuffer.get() == 0x01)) {
-
-                }
-                ppsIndex = spsPpsBuffer.position();
-                sps = new byte[ppsIndex - 4];
-                System.arraycopy(mBuffer, 0, sps, 0, sps.length);
-                ppsIndex -= 4;
-                pps = new byte[mBuffer.length - ppsIndex];
-                System.arraycopy(mBuffer, ppsIndex, pps, 0, pps.length);
-
-                // sps buffer
-                ByteBuffer csd0 = ByteBuffer.wrap(sps, 0, sps.length);
-
-                // pps buffer
-                ByteBuffer csd1 = ByteBuffer.wrap(pps, 0, pps.length);
+                VideoPacket.StreamSettings streamSettings = VideoPacket.getStreamSettings(mBuffer);
 
                 mDecoder.configure(mDecoderSurfaceView.getHolder().getSurface(),
                         OUTPUT_WIDTH,
                         OUTPUT_HEIGHT,
-                        csd0, csd1);
+                        streamSettings.sps, streamSettings.pps);
             } else {
                 // pass byte[] to decoder's queue to render asap
                 mDecoder.decodeSample(mBuffer,
